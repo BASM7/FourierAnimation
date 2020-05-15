@@ -47,7 +47,7 @@ def calculateFourierSeries(pts, nvec=10, nt=1e5):
     x_spline = spline_func(d, pts[:, 0], periodic=True) #create function x(t)
     y_spline = spline_func(d, pts[:, 1], periodic=True) #create function y(t)
 
-    t = np.linspace(0, 1, num=(nt+1))
+    t = np.linspace(0, 1, num=int(nt+1))
     nlist = np.linspace(-nvec, nvec, num=2*nvec+1).astype(np.int32)
     c = np.zeros((len(nlist),), dtype=np.complex)
     for n in nlist:
@@ -85,11 +85,11 @@ def calcSums(coef, n, t):
 # drawCircles: whether to draw circles around arrow components
 # returns last image of fully drawn contour
 def animate(c, nlist, imshape, animtime=1e3, ptdensity=200, display=True, save=False, vidwriter=None, drawArrows=True, drawCircles=True):
-    time = np.linspace(0, 1, num=animtime + 1)
+    time = np.linspace(0, 1, num=int(animtime + 1))
     endpoints = []
-    arrowColor = (200, 180, 195)
+    arrowColor = (0, 0, 0)
     trajColor = (255, 161, 105)
-    circleColor = (115, 115, 115)
+    circleColor = (0, 0, 0)
     for t in time:
         print(t)
         img = np.zeros((imshape[0], imshape[1], 3))
@@ -99,6 +99,8 @@ def animate(c, nlist, imshape, animtime=1e3, ptdensity=200, display=True, save=F
                 continue
             pt1 = (int(np.real(sums[i-1])), int(np.imag(sums[i-1])))
             pt2 = (int(np.real(sum)), int(np.imag(sum)))
+
+
             if drawArrows:
                 cv2.arrowedLine(img, pt1, pt2, arrowColor, 2, tipLength=0.05)
             if drawCircles:
@@ -129,12 +131,33 @@ def animate(c, nlist, imshape, animtime=1e3, ptdensity=200, display=True, save=F
 ###########################################
 # Example: (contour is n x 2 list of (x, y) points for your contour)
 #
-# import FourierAnimation as fa
-# import cv2
-#
-# contour = <your n x 2 array of ordered (x, y) contour points>
-# imshape = <(h x w) size of output image>
-# c, nlist = fa.calculateFourierSeries(contour, nvec=100) #calculate Fourier coefficients
-# fourcc = cv2.VideoWriter_fourcc(*'MJPG')
-# out = cv2.VideoWriter('fourier.avi', fourcc, 30, (imshape[1], imshape[0])) #video writer
-# fa.animate(c, nlist, imshape, save=True, vidwriter=out)
+
+import FourierAnimation as fa
+import cv2
+
+#get contour
+inputfile = 'testinverted'
+im = cv2.imread(inputfile+'.jpg')
+imgray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
+ret, thresh = cv2.threshold(imgray, 126, 255, 0)
+
+contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
+
+#cv2.drawContours(im, contours, -1, (0, 255, 0), 3)
+#cv2.imshow('Image', im)
+#cv2.waitKey(0)
+
+contour = []
+for c in contours:
+    for i in c:
+        contour.append(i[0])
+        #print("x: ", i[0][0], " y: ", i[0][1])
+
+#print(contour)
+
+imshape = (1280, 720)
+c, nlist = fa.calculateFourierSeries(contour, nvec=100) #calculate Fourier coefficients
+
+fourcc = cv2.VideoWriter_fourcc(*'MP4V')
+out = cv2.VideoWriter(inputfile+'output.mp4', fourcc, 60.0, (imshape[1], imshape[0])) #video writer
+fa.animate(c, nlist, imshape, save=True, vidwriter=out)
